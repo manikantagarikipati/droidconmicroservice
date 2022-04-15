@@ -1,0 +1,147 @@
+plugins {
+    id "org.jetbrains.kotlin.jvm" version "$kotlinVersion"
+    id "org.jetbrains.kotlin.kapt" version "$kotlinVersion"
+    id "org.jetbrains.kotlin.plugin.allopen" version "$kotlinVersion"
+    id "org.jetbrains.kotlin.plugin.jpa" version "$kotlinVersion"
+    id "com.github.johnrengelman.shadow" version "$shadowJarVersion"
+    id "io.gitlab.arturbosch.detekt" version "${detektVersion}"
+    id "jacoco"
+    id "application"
+}
+
+version "0.1"
+group "com.geekmk.droidcon"
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+configurations {
+    developmentOnly
+}
+
+dependencies {
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:$detektVersion")
+    kapt(platform("io.micronaut:micronaut-bom:$micronautVersion"))
+    kapt("io.micronaut:micronaut-inject-java:$micronautVersion")
+    kapt("io.micronaut:micronaut-validation:$micronautVersion")
+    kapt("io.micronaut.data:micronaut-data-processor:$micronautDataVersion")
+    kapt("io.micronaut.openapi:micronaut-openapi:$openApiVersion")
+    implementation(platform("io.micronaut:micronaut-bom:$micronautVersion"))
+    implementation("io.micronaut:micronaut-inject:$micronautVersion")
+    implementation("io.micronaut:micronaut-validation:$micronautVersion")
+    implementation("io.micronaut.flyway:micronaut-flyway:$micronautFlywayVersion")
+    implementation("io.micronaut:micronaut-management:$micronautVersion")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
+    implementation("io.micronaut.kotlin:micronaut-kotlin-runtime:$micronautKotlinVersion")
+    implementation("io.micronaut:micronaut-runtime:$micronautVersion")
+    implementation("io.micronaut:micronaut-http-server-netty:$micronautVersion")
+    implementation("io.micronaut:micronaut-http-client:$micronautVersion")
+    implementation("io.micronaut.data:micronaut-data-hibernate-jpa:$micronautDataVersion")
+    implementation("io.micronaut.sql:micronaut-jdbc-hikari:$micronautSqlVersion")
+    implementation("io.micronaut.sql:micronaut-hibernate-jpa:$micronautSqlVersion")
+    implementation("io.micronaut.micrometer:micronaut-micrometer-core:$micronautMicrometerVersion")
+    implementation("io.micronaut.micrometer:micronaut-micrometer-registry-prometheus:$micronautMicrometerVersion")
+    implementation("io.swagger.core.v3:swagger-annotations")
+    runtimeOnly("org.postgresql:postgresql:$postgreSqlDriverVersion")
+    developmentOnly("io.micronaut:micronaut-runtime-osx:$micronautVersion")
+    implementation("org.apache.logging.log4j:log4j-core:$log4j2Version")
+    runtimeOnly("org.apache.logging.log4j:log4j-api:$log4j2Version")
+    runtimeOnly("org.apache.logging.log4j:log4j-slf4j-impl:$log4j2Version")
+    implementation "com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonKotlinVersion"
+    kaptTest(enforcedPlatform("io.micronaut:micronaut-bom:$micronautVersion"))
+    kaptTest("io.micronaut:micronaut-inject-java:$micronautVersion")
+    testImplementation(enforcedPlatform("io.micronaut:micronaut-bom:$micronautVersion"))
+    testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
+    testImplementation("io.micronaut.test:micronaut-test-junit5:$micronautTestVersion")
+    testImplementation("org.mockito:mockito-inline:$mockitoVersion")
+    testImplementation("com.nhaarman.mockitokotlin2:mockito-kotlin:$mockitoKotlinVersion")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
+}
+
+test.classpath += configurations.developmentOnly
+
+mainClassName = "com.geekmk.droidcon.Application"
+
+test {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+    jacoco {
+        excludes = [
+                "com.geekmk.droidcon.ApplicationKt"
+        ]
+    }
+}
+
+jacocoTestReport {
+    dependsOn test
+
+    reports {
+        xml.enabled true
+        html.destination file("${buildDir}/jacocoHtml")
+    }
+}
+
+jacoco {
+    toolVersion = "$jacocoToolVersion"
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    config = files("$projectDir/config/detekt.yml")
+
+    reports {
+        html.enabled = true
+    }
+}
+
+java {
+    sourceCompatibility = JavaVersion.toVersion('1.8')
+}
+
+allOpen {
+    annotation("io.micronaut.aop.Around")
+}
+
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = '1.8'
+        // Will retain parameter names for Java reflection
+        javaParameters = true
+    }
+}
+
+compileTestKotlin {
+    kotlinOptions {
+        jvmTarget = '1.8'
+        javaParameters = true
+    }
+}
+
+kapt {
+    arguments {
+        arg("micronaut.processing.incremental", true)
+        arg("micronaut.processing.annotations", "com.geekmk.droidcon.*")
+        arg("micronaut.processing.group", "com.geekmk.droidcon")
+        arg("micronaut.processing.module", "droidcon")
+        arg("micronaut.openapi.views.spec", "redoc.enabled=true,rapidoc.enabled=true,swagger-ui.enabled=true,swagger-ui.theme=flattop")
+    }
+}
+
+shadowJar {
+    mergeServiceFiles()
+}
+
+tasks.withType(JavaExec) {
+    classpath += configurations.developmentOnly
+    jvmArgs('-XX:TieredStopAtLevel=1')
+    if (gradle.startParameter.continuous) {
+        systemProperties(
+                'micronaut.io.watch.restart': 'true',
+                'micronaut.io.watch.enabled': 'true',
+                "micronaut.io.watch.paths": "src/main"
+        )
+    }
+}

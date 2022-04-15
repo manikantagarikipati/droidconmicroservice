@@ -1,0 +1,14 @@
+version: '3'
+
+services:
+  droidcon:
+    image: library/postgres:13.3
+    ports:
+      - "5432:5432"
+    container_name: droidcon
+    environment:
+      - POSTGRES_PASSWORD=droidcon
+      - POSTGRES_USER=droidcon
+      - POSTGRES_DB=droidcon
+    volumes:
+      - ./data:/var/lib/postgresql

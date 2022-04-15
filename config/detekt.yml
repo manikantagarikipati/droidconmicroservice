@@ -1,0 +1,7 @@
+formatting:
+  MaximumLineLength:
+    maxLineLength: 180
+
+complexity:
+  LongParameterList:
+    constructorThreshold: 10
