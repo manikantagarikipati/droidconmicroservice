@@ -1,6 +1,14 @@
 micronaut:
   application:
     name: droidconmicroservice
+  http:
+    client:
+      log-level:
+      read-timeout: 5s
+    services:
+      users:
+        url: https://example.com
+        read-timeout: 10s
 netty:
   default:
     allocator:
